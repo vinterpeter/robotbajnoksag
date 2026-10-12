@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Robotgyár</title>
+<style>
+  :root { --tinta: #3a3a3a; --piros: #e2452b; --papir: #fbf7ee; --kek: #eef6ff; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--papir); color: #2e2e2e; font-family: "Avenir Next", "Helvetica Neue", Arial, sans-serif; }
+  h1, h2, .kezi, button { font-family: "Chalkboard SE", "Marker Felt", "Comic Sans MS", cursive; }
+  header { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 18px 28px 6px; }
+  h1 { margin: 0; font-size: 40px; color: var(--piros); }
+  header p { margin: 0; color: #666; flex: 1 1 260px; }
+  button { font-size: 18px; border: 2.5px solid var(--tinta); border-radius: 14px; background: #fff; padding: 9px 18px; cursor: pointer; box-shadow: 3px 3px 0 var(--tinta); }
+  button:active { transform: translate(2px, 2px); box-shadow: 1px 1px 0 var(--tinta); }
+  button.fo { background: var(--piros); color: #fff; font-size: 22px; }
+  main { display: grid; grid-template-columns: minmax(320px, 1.1fr) minmax(320px, 1fr); gap: 24px; padding: 10px 28px 20px; align-items: start; max-width: 1280px; margin: 0 auto; }
+  .tabla { background: #fff; border: 3px solid var(--tinta); border-radius: 22px; padding: 6px; }
+  svg.robot { width: 100%; height: auto; display: block; }
+  svg.robot:not(.mini) { max-height: 78vh; margin: 0 auto; }
+  svg.robot * { vector-effect: non-scaling-stroke; }
+  .kartya { background: var(--kek); border: 3px solid var(--tinta); border-radius: 22px; padding: 16px 20px 18px; }
+  .nev { font-size: 34px; margin: 0; line-height: 1.1; }
+  .kod { color: #777; font-size: 13px; margin: 2px 0 12px; }
+  .ertekek { display: grid; grid-template-columns: auto 1fr auto; gap: 6px 10px; align-items: center; margin-bottom: 14px; }
+  .sav { height: 16px; border: 2px solid var(--tinta); border-radius: 9px; background: #fff; overflow: hidden; }
+  .sav i { display: block; height: 100%; background: var(--piros); }
+  .ertekek b { font-weight: 600; } .ertekek span { font-variant-numeric: tabular-nums; }
+  dl { margin: 0 0 12px; display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; }
+  dt { font-weight: 600; white-space: nowrap; } dd { margin: 0; }
+  .reszek { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 10px; }
+  .resz { display: flex; align-items: center; gap: 8px; background: #fff; border: 2px solid #9a9a9a; border-radius: 12px; padding: 4px 6px 4px 10px; }
+  .resz small { color: #777; display: block; line-height: 1.1; } .resz div { flex: 1; min-width: 0; }
+  .resz strong { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+  .resz button { font-size: 15px; padding: 2px 9px; border-width: 2px; border-radius: 10px; box-shadow: 2px 2px 0 var(--tinta); }
+  .csapat { padding: 0 28px 34px; max-width: 1280px; margin: 0 auto; }
+  .csapat h2 { margin: 6px 0 10px; font-size: 26px; }
+  .sor { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+  .kicsi { background: #fff; border: 2.5px solid var(--tinta); border-radius: 16px; padding: 4px 4px 8px; cursor: pointer; text-align: center; }
+  .kicsi:hover { background: #fff8e6; }
+  .kicsi span { font-size: 15px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } .sor { grid-template-columns: repeat(3, 1fr); } }
+  @media print { header button, .csapat, .resz button { display: none; } body { background: #fff; } main { grid-template-columns: 1fr 1fr; padding: 0; } header { padding: 0 0 8px; } }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><defs>
+  <filter id="kez" x="-5%" y="-5%" width="110%" height="110%"><feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="2" seed="4" result="z"/><feDisplacementMap in="SourceGraphic" in2="z" scale="4"/></filter>
+</defs></svg>
+<header>
+  <h1>Robotgyár</h1>
+  <p>A gyár véletlen adatokból rak össze egy robotot. Ha egy alkatrész nem tetszik, a mellette lévő gombbal kicserélheted.</p>
+  <button class="fo" id="uj">Új robot!</button>
+  <button id="nyomtat">Nyomtatás</button>
+</header>
+<main>
+  <div class="tabla" id="tabla"></div>
+  <div class="kartya" id="kartya"></div>
+</main>
+<section class="csapat">
+  <h2>Robotcsapat <button id="ujcsapat" style="font-size:16px;padding:4px 12px;margin-left:10px">Új csapat</button></h2>
+  <div class="sor" id="sor"></div>
+</section>
+<script>
+/*ADAT*/
+const SOROK = [['test', 'Test', 1], ['fej', 'Fej', 1], ['szem', 'Szem', 1], ['szaj', 'Száj', 1], ['kar', 'Kar', 1], ['lab', 'Láb', 1],
+               ['kellek', 'Kellék', .75], ['fegyver', 'Fegyver', .7], ['raketa', 'Rakéta', .55], ['pilota', 'Pilóta helye', .65], ['repules', 'Repülés', .5]];
+const SZINEK = ['#f28b82', '#fbbc6a', '#ffe66b', '#b9e6a3', '#8fd3c8', '#9cc9f5', '#c9b1f0', '#f5b6d8', '#d9d9d9', '#f4a57a'];
+const ELO = ['Mega', 'Turbó', 'Vas', 'Bumm', 'Csavar', 'Zizi', 'Szikra', 'Dübörgő', 'Villám', 'Kattogó', 'Rozsda', 'Lézer', 'Giga', 'Dörmögő', 'Pörgő', 'Csörgő'];
+const VEG = ['tron', 'bot', 'gép', 'zilla', 'max', 'rex', '-9000', '-X', 'fej', 'mancs', 'vas', '-3000'];
+const PILOTAK = ['Csavar kapitány', 'Szikra őrmester', 'Bolt Berci', 'Fogaskerék Fanni', 'Villám Vili', 'Olaj Olivér', 'Rugó Rozi', 'Dinamó Dani', 'Lézer Lili', 'Turbó Tomi'];
+const EROK = ['átlát a falon', 'három másodperc alatt megeszik egy autót', 'villámot lő a szeméből', 'olyan hangosan dudál, hogy megreped az üveg', 'láthatatlanná válik, ha pislog',
+              'tíz emeletet ugrik egy helyből', 'megfagyaszt mindent, amihez hozzáér', 'összemegy akkorára, mint egy hangya', 'gondolatban irányítja a többi gépet', 'forog, mint a búgócsiga, és mindent elsodor',
+              'mágnesként magához ránt minden vasat', 'tüzet fúj, ha tüsszent'];
+const GYENGEK = ['berozsdál az esőben', 'fél a porszívótól', 'elalszik, ha altatódalt hall', 'csiklandós a hátán', 'lemerül, ha sokat nevet', 'nem bírja a rágógumit', 'megszédül a körhintán',
+                 'eltéved a saját garázsában', 'megáll, ha lila színt lát', 'nem tud lépcsőn lemenni'];
+const ETELEK = ['csavaranya-leves', 'olajos palacsinta', 'rozsdás vasreszelék', 'elemes szendvics', 'szikratorta', 'fogaskerék-pizza', 'benzines kakaó', 'drótspagetti', 'mágneses fagyi'];
+const ERTEKEK = ['Erő', 'Sebesség', 'Páncél', 'Okosság'];
+const BONUSZ = { 'kerék': [0, 3, 0, 0], 'lánctalp': [1, 0, 3, 0], 'rugóláb': [0, 2, 0, 0], 'rakéta': [0, 3, 0, 0], 'pókláb': [0, 1, 0, 1], 'ágyú': [3, 0, 0, 0], 'kalapács': [3, 0, 0, 0], 'kard': [2, 1, 0, 0],
+                 'pajzs': [0, 0, 3, 0], 'páncél': [0, 0, 3, 0], 'antenna': [0, 0, 0, 2], 'küklopsz': [0, 0, 0, 1], 'sugárhajtómű': [0, 3, 0, 0], 'szárny': [0, 2, 0, 0], 'gombok': [0, 0, 0, 2], 'széles vállú': [2, 0, 1, 0] };
+
+function veletlen(mag) { let a = mag >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const valaszt = (rnd, n) => Math.floor(rnd() * n);
+
+function ujRobot(mag) {
+  const rnd = veletlen(mag), r = { mag, resz: {}, szin: [] };
+  for (const [k, , esely] of SOROK) r.resz[k] = rnd() < esely ? valaszt(rnd, ADAT[k].length) : -1;
+  for (let i = 0; i < 4; i++) r.szin.push(valaszt(rnd, SZINEK.length));
+  if (r.szin[1] === r.szin[0]) r.szin[1] = (r.szin[1] + 3) % SZINEK.length;
+  r.nev = ELO[valaszt(rnd, ELO.length)] + VEG[valaszt(rnd, VEG.length)];
+  r.pilota = PILOTAK[valaszt(rnd, PILOTAK.length)];
+  r.ero = EROK[valaszt(rnd, EROK.length)]; r.gyenge = GYENGEK[valaszt(rnd, GYENGEK.length)]; r.etel = ETELEK[valaszt(rnd, ETELEK.length)];
+  r.alap = ERTEKEK.map(() => 2 + valaszt(rnd, 6));
+  return r;
+}
+const nevOf = (r, k) => r.resz[k] < 0 ? null : ADAT[k][r.resz[k]].nev;
+function ertekek(r) {
+  const e = r.alap.slice();
+  for (const [k] of SOROK) { const b = BONUSZ[nevOf(r, k)]; if (b) b.forEach((x, i) => e[i] += x); }
+  return e.map(x => Math.min(10, x));
+}
+
+// ---- rajzolás: minden alkatrész a saját 60x60-as rajzából kerül a helyére ----
+function darab(a, o) {   // o: {x, y, s, ax, ay, tukor, fo, apro, tobbi}
+  let elso = true;
+  const belso = a.el.map(([el, f]) => {
+    let szin = 'none';
+    if (f === 'k') { szin = elso ? o.fo : (o.tobbi || o.fo); elso = false; }
+    else if (f === 'a') szin = o.apro || '#fff';
+    return el.replace('/>', ` fill="${szin}"/>`);
+  }).join('');
+  const s = o.s || 1;
+  return `<g transform="translate(${o.x},${o.y}) scale(${o.tukor ? -s : s},${s}) translate(${-(o.ax ?? 30)},${-(o.ay ?? 30)})">${belso}</g>`;
+}
+function rajz(r, kicsi) {
+  const [c1, c2, c3, c4] = r.szin.map(i => SZINEK[i]), vas = '#cfcfcf';
+  const A = k => r.resz[k] < 0 ? null : ADAT[k][r.resz[k]];
+  const hat = [], elol = [], fent = [];
+  let teto = 66;                                    // a fej teteje; ide pakoljuk egymásra a fejre kerülő dolgokat
+  const fejre = (a, szin) => { fent.push(darab(a, { x: 150, y: teto + 3, s: a.s || 1, ax: a.ax, ay: a.ay, fo: szin, tobbi: '#fff', apro: '#555' })); teto -= (a.mag || 36) * (a.s || 1); };
+  const pil = A('pilota'), kel = A('kellek'), rep = A('repules');
+  let mellY = 188;
+  // repülés
+  if (rep) {
+    if (rep.hely === 'hat') hat.push(darab(rep, { x: 150, y: 190, s: 3.7, fo: c3 }));
+    if (rep.hely === 'oldal') hat.push(darab(rep, { x: 92, y: 214, s: 1.5, fo: vas }), darab(rep, { x: 208, y: 214, s: 1.5, fo: vas, tukor: 1 }));
+    if (rep.hely === 'alatt') hat.push(darab(rep, { x: 150, y: 330, s: 2.9, ax: 30, ay: 36, fo: c3, tobbi: '#fff', apro: '#ffe66b' }));
+  }
+  // láb, kar, váll
+  const lab = A('lab');
+  if (lab.egy) hat.push(darab(lab, { x: 150, y: 232, s: lab.s || 1.9, ax: lab.ax, ay: lab.ay, fo: vas, tobbi: '#fff' }));
+  else hat.push(darab(lab, { x: 124, y: 232, s: 1.4, ax: lab.ax, ay: lab.ay, fo: vas, tobbi: '#fff' }), darab(lab, { x: 176, y: 232, s: 1.4, ax: lab.ax, ay: lab.ay, fo: vas, tobbi: '#fff' }));
+  const kar = A('kar');
+  hat.push(darab(kar, { x: 192, y: 162, s: 1.5, ax: kar.ax, ay: kar.ay, fo: c2, tobbi: vas }), darab(kar, { x: 108, y: 162, s: 1.5, ax: kar.ax, ay: kar.ay, fo: c2, tobbi: vas, tukor: 1 }));
+  if (A('fegyver')) hat.push(darab(A('fegyver'), { x: 97, y: 150, s: 0.95, ax: 30, ay: 54, fo: c4, tobbi: '#fff' }));
+  if (A('raketa')) hat.push(darab(A('raketa'), { x: 203, y: 150, s: 0.95, ax: 30, ay: 54, fo: c4, tobbi: '#fff' }));
+  hat.push(`<rect x="141" y="116" width="18" height="28" fill="${vas}"/>`);
+  // test és ami rajta van
+  elol.push(darab(A('test'), { x: 150, y: 190, s: 2.3, fo: c1 }));
+  if (pil && pil.hely === 'mell') { elol.push(darab(pil, { x: 150, y: kel && kel.hely === 'mell' ? 176 : 188, s: pil.s || 0.95, fo: '#fff', tobbi: '#cfe8f7', apro: '#555' })); mellY = 222; }
+  if (kel && kel.hely === 'mell') elol.push(darab(kel, { x: 150, y: mellY, s: mellY > 200 ? 0.5 : 0.9, fo: '#fff', tobbi: c4, apro: c4 }));
+  // fej és arc
+  elol.push(darab(A('fej'), { x: 150, y: 92, s: 1.5, fo: c2 }));
+  elol.push(darab(A('szem'), { x: 150, y: 86, s: 0.95, fo: '#fff', apro: '#333' }));
+  elol.push(darab(A('szaj'), { x: 150, y: 111, s: 0.5, fo: '#fff', apro: '#333' }));
+  if (pil && pil.hely === 'fejteto') fejre(pil, '#cfe8f7');
+  if (kel && kel.hely === 'fejteto') {
+    if (teto < 66 && kel.nev === 'antenna') fent.push(darab(kel, { x: 182, y: 78, s: 0.8, ax: kel.ax, ay: kel.ay, fo: c4 })); else fejre(kel, c4);
+  }
+  if (rep && rep.hely === 'fejteto') fejre(rep, vas);
+  if (rep && rep.hely === 'folott') fent.push(darab(rep, { x: 150, y: teto + 6, s: 2.3, ax: rep.ax, ay: rep.ay, fo: c3, tobbi: '#e8d2a6' }));
+  if (pil && pil.hely === 'kulso')   // a pilóta kívülről, távirányítóval irányít
+    fent.push(`<g transform="translate(30,268)"><circle cx="14" cy="8" r="8" fill="#ffe1c4"/><path d="M14,16 V40 M14,40 L6,58 M14,40 L22,58 M14,24 L2,32 M14,24 L28,30" fill="none"/></g>`, darab(pil, { x: 68, y: 300, s: 0.55, fo: '#fff', apro: c4 }),
+              `<path d="M82,286 Q96,276 104,262 M88,294 Q104,286 114,272" fill="none" stroke-dasharray="3 5"/>`);
+  // a kép teteje ahhoz igazodik, ami a robot fején vagy fölötte van
+  const felso = Math.min(40, (rep && rep.hely === 'folott' ? teto - 128 : teto - 14));
+  return `<svg class="robot${kicsi ? ' mini' : ''}" viewBox="0 ${kicsi ? -110 : felso} 300 ${kicsi ? 480 : 372 - felso}" role="img" aria-label="${r.nev}"><g stroke="#3a3a3a" stroke-width="${kicsi ? 1.6 : 3}" stroke-linecap="round" stroke-linejoin="round" filter="url(#kez)">${hat.join('')}${elol.join('')}${fent.join('')}</g></svg>`;
+}
+
+// ---- felület ----
+let most;
+const tisztit = s => s.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+function mutat() {
+  document.getElementById('tabla').innerHTML = rajz(most);
+  const e = ertekek(most);
+  const savok = ERTEKEK.map((n, i) => `<b>${n}</b><div class="sav"><i style="width:${e[i] * 10}%"></i></div><span>${e[i]}&nbsp;/&nbsp;10</span>`).join('');
+  const reszek = SOROK.map(([k, cim]) => `<div class="resz"><div><small>${cim}</small><strong>${nevOf(most, k) || 'nincs'}</strong></div><button data-k="${k}" title="Másikat kérek">csere</button></div>`).join('');
+  const vanPilota = most.resz.pilota >= 0;
+  document.getElementById('kartya').innerHTML = `<h2 class="nev">${tisztit(most.nev)}</h2><p class="kod">Gyári szám: ${most.mag}</p>
+    <div class="ertekek">${savok}</div>
+    <dl><dt>Pilótája</dt><dd>${vanPilota ? most.pilota : 'nincs, magától megy'}</dd><dt>Szuperereje</dt><dd>${most.ero}</dd><dt>Gyenge pontja</dt><dd>${most.gyenge}</dd><dt>Kedvenc étele</dt><dd>${most.etel}</dd></dl>
+    <div class="reszek">${reszek}</div>`;
+  history.replaceState(null, '', '#' + most.mag);
+}
+function csapat() {
+  const sor = document.getElementById('sor'); sor.innerHTML = '';
+  for (let i = 0; i < 6; i++) {
+    const r = ujRobot(Math.floor(Math.random() * 900000) + 100000), d = document.createElement('div');
+    d.className = 'kicsi'; d.innerHTML = rajz(r, true) + `<span class="kezi">${r.nev}</span>`;
+    d.onclick = () => { most = r; mutat(); scrollTo({ top: 0, behavior: 'smooth' }); };
+    sor.appendChild(d);
+  }
+}
+document.getElementById('uj').onclick = () => { most = ujRobot(Math.floor(Math.random() * 900000) + 100000); mutat(); };
+document.getElementById('ujcsapat').onclick = csapat;
+document.getElementById('nyomtat').onclick = () => print();
+document.getElementById('kartya').onclick = ev => {
+  const k = ev.target.dataset && ev.target.dataset.k; if (!k) return;
+  const n = ADAT[k].length, kotelezo = SOROK.find(s => s[0] === k)[2] === 1;
+  let uj = most.resz[k] + 1; if (uj >= n) uj = kotelezo ? 0 : -1;      // sorban végigmegy a változatokon, a végén „nincs”
+  most.resz[k] = uj; mutat();
+};
+most = ujRobot(parseInt(location.hash.slice(1)) || Math.floor(Math.random() * 900000) + 100000);
+mutat(); csapat();
+const racs = new URLSearchParams(location.search).get('racs');
+if (racs) {   // ellenőrző nézet: sok robot egyszerre
+  document.querySelector('main').style.display = 'none'; const sor = document.getElementById('sor'); sor.innerHTML = '';
+  for (let i = 0; i < +racs; i++) { const r = ujRobot(1000 + i * 7919), d = document.createElement('div'); d.className = 'kicsi'; d.innerHTML = rajz(r, true) + `<span class="kezi">${r.nev}</span>`; sor.appendChild(d); }
+}
+</script>
+</body>
+</html>
