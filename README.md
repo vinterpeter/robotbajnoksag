@@ -8,8 +8,9 @@ A játék egyetlen HTML-fájl, telepíteni nem kell: nyisd meg az `index.html`-t
 
 - **Garázs:** legfeljebb 12 robot. Az első ingyen van, a többi 25 tallér.
 - **Feladatok:** matek, magyar, környezet vagy vegyes, egy kör tíz kérdés. Jó válasz 2 tallér, három jó után sorozatban 3, hibátlan körért 5 jutalom.
-- **Műhely:** alkatrészcsere, átfestés, átnevezés, és a négy érték (erő, sebesség, páncél, okosság) fejlesztése.
-- **Aréna:** támadás előtt a robot feladatot kap; jó válasz szuperütés, rossz válasz gyenge ütés. Gyári ellenfél ellen tallérért, két saját robottal barátságos meccsben.
+- **Verseny:** tíz feladat a Zrínyi matekverseny mintájára (a 2018-as 2. osztályos megyei forduló feladattípusai, mindig új számokkal), öt válasz közül egy jó, könnyű 3, közepes 4, nehéz 5 pont. Elsőre jó válaszért 4, 6 vagy 8 tallér jár. Rossz válasz után segítséget ad, és újra lehet próbálni: ha akkor sikerül, 1 tallér jár (pont nem), ha akkor sem, nem jár semmi, és megmutatja a megoldás menetét.
+- **Műhely:** alkatrészcsere választóból (minden lehetőség látszik, a bal oldali rajzon ki lehet próbálni, mielőtt felszereled), átfestés, átnevezés, és a négy érték (erő, sebesség, páncél, okosság) fejlesztése.
+- **Aréna:** minden körben a robot alkatrészeiből választasz akciót (karral ütés, fegyver, egyszer használható rakéta, védekezés vagy pajzs, javítás), aztán feladatot kapsz; jó válasz szuperakció, rossz válasz gyenge. A gyors vagy repülő robot kitérhet, a gyári ellenfél is választ akciót. Gyári ellenfél ellen tallérért, két saját robottal barátságos meccsben.
 
 ## A tananyag
 
