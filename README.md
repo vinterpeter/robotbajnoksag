@@ -12,6 +12,9 @@ A játék egyetlen HTML-fájl, telepíteni nem kell: nyisd meg az `index.html`-t
 - **Műhely:** alkatrészcsere választóból (minden lehetőség látszik, a bal oldali rajzon ki lehet próbálni, mielőtt felszereled), átfestés, átnevezés, és a négy érték (erő, sebesség, páncél, okosság) fejlesztése.
 - **Aréna:** minden körben a robot alkatrészeiből választasz akciót (karral ütés, fegyver, egyszer használható rakéta, védekezés vagy pajzs, javítás), aztán feladatot kapsz; jó válasz szuperakció, rossz válasz gyenge. A gyors vagy repülő robot kitérhet, a gyári ellenfél is választ akciót. Gyári ellenfél ellen tallérért, két saját robottal barátságos meccsben.
 
+- **Játékosok és statisztika:** induláskor „Ki játszik?”: minden becenévnek saját mentése van. Ha a `robotjatek_sablon.html` végén a `FIREBASE_CONFIG` be van állítva, a játék névtelen Firebase-bejelentkezéssel feltölti a játékos állapotát (robotok, tallér, játékidő) és az eseményeket (feladatkörök kérdésenként, versenyek, harcok, vásárlások). Beállítás nélkül minden csak a böngészőben marad.
+- **Admin:** a címre („Robotbajnokság”) ötször gyorsan koppintva nyílik. Belépés az admin Firebase-fiók jelszavával; játékosonként játékidő napokra bontva, témánkénti sikerarány (a leggyengébb elöl), robotok, versenyek, feladatkörök, harcok, vásárlások. A hozzáférést a `firestore.rules` szabályozza: írni csak a saját profilt lehet, olvasni csak az admin fiók tud.
+
 ## A tananyag
 
 A kérdések a második osztály őszi anyagának szokásos témáiból készülnek, nem egy konkrét iskola tanmenetéből:
