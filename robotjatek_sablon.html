@@ -81,6 +81,27 @@
   .valaszok button { font-size: clamp(20px, 3.6vh, 28px); padding: 1.4vh 8px; }
   .valaszok button.jo { background: var(--zold); color: #fff; opacity: 1; } .valaszok button.rossz { background: #f3a6a0; opacity: 1; }
   .uzenet { min-height: 34px; font-size: 20px; margin-top: 8px; font-family: "Chalkboard SE", cursive; }
+  /* profilok és admin */
+  .fedo { position: fixed; inset: 0; background: var(--papir); z-index: 50; overflow: auto; padding: 20px; display: none; }
+  .fedo.lathato { display: block; }
+  #profilok .belso { max-width: 760px; margin: 6vh auto 0; text-align: center; display: flex; flex-direction: column; gap: 16px; align-items: center; }
+  #profilok h2 { margin: 0; font-size: 36px; color: var(--piros); }
+  .profilsor { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+  .profilsor button { font-size: 24px; padding: 12px 26px; }
+  #ujnev { font: 22px "Chalkboard SE", cursive; padding: 8px 14px; border: 2.5px solid var(--tinta); border-radius: 13px; width: min(320px, 70vw); }
+  #jatekos { font-size: 15px; padding: 2px 10px; min-height: 30px; box-shadow: 2px 2px 0 var(--tinta); border-width: 2px; white-space: nowrap; }
+  #admin .belso { max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+  #admin h2 { margin: 0; font-size: 28px; } #admin h3 { margin: 6px 0 0; font-size: 20px; }
+  #admin table { border-collapse: collapse; width: 100%; background: #fff; font-size: 15px; }
+  #admin th, #admin td { border-bottom: 1px solid #ddd; padding: 6px 8px; text-align: left; white-space: nowrap; } #admin th { background: var(--kek); font-family: "Chalkboard SE", cursive; }
+  #admin tr.kat { cursor: pointer; } #admin tr.kat:hover td { background: #fff3c4; }
+  .tablazat { overflow-x: auto; border: 2px solid var(--tinta); border-radius: 12px; }
+  .admsav { display: inline-block; height: 12px; border-radius: 6px; background: var(--zold); vertical-align: middle; }
+  .admrobotok { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+  .admrobotok div { background: #fff; border: 2px solid var(--tinta); border-radius: 12px; padding: 4px; text-align: center; font-size: 13px; } .admrobotok svg { height: 110px; }
+  .napok { display: flex; align-items: flex-end; gap: 4px; height: 120px; background: #fff; border: 2px solid var(--tinta); border-radius: 12px; padding: 8px; }
+  .napok div { flex: 1; background: var(--kek); border: 1.5px solid var(--tinta); border-radius: 4px 4px 0 0; position: relative; min-height: 2px; }
+  .napok div span { position: absolute; bottom: -2px; left: 50%; translate: -50% 100%; font-size: 10px; color: #777; }
   /* verseny */
   #verseny { justify-content: center; }
   #vstart { text-align: center; display: flex; flex-direction: column; gap: 12px; align-items: center; max-width: 720px; margin: 0 auto; }
@@ -177,9 +198,17 @@
   <nav>
     <button data-oldal="garazs">Garázs</button><button data-oldal="tanulas">Feladatok</button><button data-oldal="verseny">Verseny</button><button data-oldal="muhely">Műhely</button><button data-oldal="arena">Aréna</button>
   </nav>
+  <button id="jatekos" title="Játékos váltása"></button>
   <span class="enrobotom" id="enrobotom"></span>
   <span class="taller" id="taller" title="Tallérjaid">0</span>
 </header>
+<div class="fedo" id="profilok"><div class="belso">
+  <h2>Ki játszik?</h2>
+  <div class="profilsor" id="profillista"></div>
+  <p class="sug" id="profilsug">Írd be a neved, és kezdődhet a játék!</p>
+  <div class="gombsor" style="justify-content:center"><input id="ujnev" maxlength="16" placeholder="A neved" autocomplete="off"><button class="fo" id="ujprofil">Új játékos</button></div>
+</div></div>
+<div class="fedo" id="admin"><div class="belso" id="admintartalom"></div></div>
 <main>
   <section id="garazs">
     <div class="racs" id="robotok"></div>
@@ -483,6 +512,8 @@ const ZRINYI = [
         (n - 1) * m, [n * m, (n + 1) * m, n + m], `${n} ${fa ? 'fa' : 'oszlop'} között csak ${n - 1} hézag van: ${n - 1} × ${m} = ${(n - 1) * m}.`, `Rajzold le! Például 3 ${fa ? 'fa' : 'oszlop'} között csak 2 hézag van. Hány hézag van ${n} ${fa ? 'fa' : 'oszlop'} között? Minden hézag ${m} méter.`, ABRA.kerites(m, fa)); },
   ],
 ];
+const ZNEV = [['páros-páratlan', 'fele fele', 'ennél több', 'műveletsor', 'lábak száma'], ['púpok', 'duplázás', 'kétszerese', 'számjegyösszeg', 'oldalszámok', 'betűkártyák', 'tej (liter, dl)'],
+              ['sárkányok', 'időpont', 'sorba rendezés', 'hézagok (kerítés)']];
 const ZPONT = [3, 4, 5], ZTALLER = [4, 6, 8], ZMASODIK = 1;   // tallér: elsőre jó / segítség után jó
 function ujVersenyFeladat(szint, gen) {
   for (let i = 0; i < 20; i++) {
@@ -495,19 +526,63 @@ function ujVersenyFeladat(szint, gen) {
 }
 
 // ===================== ÁLLAPOT =====================
-const KULCS = 'robotbajnoksag-v1', AR = { robot: 25, csere: 3, festes: 2 };
-let all = JSON.parse(localStorage.getItem(KULCS) || 'null');
+const teszt = new URLSearchParams(location.search).get('teszt');
+// Minden játékosnak (profilnak) saját mentése van; a régi, profil nélküli mentést az első profil kapja meg.
+const REGI_KULCS = 'robotbajnoksag-v1', PROFIL_KULCS = 'robotbajnoksag-profilok', AKTIV_KULCS = 'robotbajnoksag-aktiv-profil', AR = { robot: 25, csere: 3, festes: 2 };
+let KULCS = null;
 function ujMag() { return 100000 + egesz(900000); }
-if (!all || !all.robotok || !all.robotok.length) all = { taller: 10, robotok: [ujRobot(ujMag())], aktiv: 0, jo: 0, rossz: 0 };
+const ujAllas = () => ({ taller: 10, robotok: [ujRobot(ujMag())], aktiv: 0, jo: 0, rossz: 0 });
+let all = ujAllas();
+let profilok = JSON.parse(localStorage.getItem(PROFIL_KULCS) || '[]');
 let elozoTaller = null;
 const ment = () => {
-  localStorage.setItem(KULCS, JSON.stringify(all));
+  if (KULCS) { localStorage.setItem(KULCS, JSON.stringify(all)); window.felhoMent && window.felhoMent(); }
   const t = document.getElementById('taller'); t.textContent = all.taller;
   if (elozoTaller !== null && all.taller > elozoTaller) { t.classList.remove('no'); void t.offsetWidth; t.classList.add('no'); }   // felvillan, ha tallért kaptál
   elozoTaller = all.taller;
   const r = all.robotok[all.aktiv] || all.robotok[0]; document.getElementById('enrobotom').innerHTML = `A robotom: <b>${r.nev}</b>`;
 };
 const aktiv = () => all.robotok[all.aktiv] || all.robotok[0];
+function betolt(p) {
+  KULCS = 'robotbajnoksag-p-' + p.id;
+  let a = JSON.parse(localStorage.getItem(KULCS) || 'null');
+  if (!a && profilok.length === 1) { a = JSON.parse(localStorage.getItem(REGI_KULCS) || 'null'); }   // régi mentés átvétele
+  all = a && a.robotok && a.robotok.length ? a : ujAllas();
+  all.id = p.id; all.nev = p.nev; all.letrehozva = all.letrehozva || Date.now();
+  localStorage.setItem(AKTIV_KULCS, p.id); elozoTaller = null;
+  document.getElementById('jatekos').textContent = p.nev; document.getElementById('profilok').classList.remove('lathato');
+  ment(); felho('belepes'); oldal('garazs');
+}
+function profilNyit() {
+  if (typeof harcFolyik !== 'undefined' && harcFolyik) return;
+  document.getElementById('profillista').innerHTML = profilok.map(p => `<button class="fo" data-profil="${p.id}">${p.nev}</button>`).join('');
+  document.getElementById('profilsug').textContent = profilok.length ? 'Válaszd ki a neved, vagy írj be egy újat!' : 'Írd be a neved, és kezdődhet a játék!';
+  document.getElementById('profilok').classList.add('lathato'); document.getElementById('ujnev').value = '';
+}
+document.getElementById('profillista').onclick = e => { const g = e.target.closest('[data-profil]'); if (g) betolt(profilok.find(p => p.id === g.dataset.profil)); };
+document.getElementById('ujprofil').onclick = () => {
+  const nev = document.getElementById('ujnev').value.trim().replace(/[<>&"]/g, '').slice(0, 16); if (!nev) { document.getElementById('ujnev').focus(); return; }
+  const p = { id: (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + egesz(1e9)).replace(/-/g, '').slice(0, 20), nev };
+  profilok.push(p); localStorage.setItem(PROFIL_KULCS, JSON.stringify(profilok)); betolt(p);
+};
+document.getElementById('ujnev').onkeydown = e => { if (e.key === 'Enter') document.getElementById('ujprofil').click(); };
+document.getElementById('jatekos').onclick = profilNyit;
+
+// ---- statisztika: események a felhőbe (ha be van állítva), játékidő mérése ----
+window.felhoSor = window.felhoSor || [];
+function felho(tip, adat = {}) { if (!all.id || teszt) return; window.felhoSor.push({ tip, adat, ido: Date.now(), profil: all.id }); window.felhoKuld && window.felhoKuld(); }
+window.felhoAllapot = () => ({
+  nev: all.nev, taller: all.taller, jo: all.jo || 0, rossz: all.rossz || 0, versenyRekord: all.versenyRekord || 0, jatekIdoMp: all.jatekIdoMp || 0, napok: all.napok || {},
+  letrehozva: all.letrehozva || Date.now(), aktiv: all.aktiv, eszkoz: /iPad|Tablet/i.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1) ? 'tablet' : /Mobi|Android/i.test(navigator.userAgent) ? 'telefon' : 'számítógép',
+  robotok: all.robotok.map(r => ({ nev: r.nev, mag: r.mag, resz: r.resz, szin: r.szin, plusz: r.plusz, gyozelem: r.gyozelem || 0, alap: r.alap })),
+});
+let utolsoMozdulat = Date.now();
+['pointerdown', 'keydown'].forEach(t => addEventListener(t, () => utolsoMozdulat = Date.now(), { passive: true }));
+setInterval(() => {   // csak az aktív játékot számoljuk: látható az oldal, és két percen belül volt érintés
+  if (!KULCS || document.visibilityState !== 'visible' || Date.now() - utolsoMozdulat > 120000) return;
+  const nap = new Date().toISOString().slice(0, 10); all.jatekIdoMp = (all.jatekIdoMp || 0) + 30; all.napok = all.napok || {}; all.napok[nap] = (all.napok[nap] || 0) + 30;
+  localStorage.setItem(KULCS, JSON.stringify(all)); window.felhoMent && window.felhoMent();
+}, 30000);
 const fizet = ar => { if (all.taller < ar) return false; all.taller -= ar; ment(); return true; };
 
 // hangok
@@ -537,7 +612,7 @@ function garazs() {
   document.getElementById('robotok').innerHTML = h;
 }
 document.getElementById('robotok').onclick = e => {
-  if (e.target.closest('[data-vesz]')) { if (fizet(AR.robot)) { all.robotok.push(ujRobot(ujMag())); all.aktiv = all.robotok.length - 1; ment(); joHang(); garazs(); } return; }
+  if (e.target.closest('[data-vesz]')) { if (fizet(AR.robot)) { all.robotok.push(ujRobot(ujMag())); all.aktiv = all.robotok.length - 1; ment(); joHang(); garazs(); felho('bolt', { mit: 'új robot', ar: AR.robot }); } return; }
   const k = e.target.closest('.kartya[data-i]'); if (k) { all.aktiv = +k.dataset.i; ment(); garazs(); }
 };
 document.getElementById('torol').onclick = () => { if (confirm('Biztosan újrakezded? Minden robot és tallér elvész.')) { localStorage.removeItem(KULCS); location.reload(); } };
@@ -588,10 +663,10 @@ function muhely() {
 }
 document.getElementById('mdoboz').onclick = ev => {
   const g = ev.target.closest('button'); if (!g) return; const r = aktiv(), d = g.dataset;
-  if (d.fejl !== undefined) { const i = +d.fejl, e = ertekek(r)[i]; if (e < MAX && fizet(2 + e)) { r.plusz[i]++; joHang(); } }
+  if (d.fejl !== undefined) { const i = +d.fejl, e = ertekek(r)[i]; if (e < MAX && fizet(2 + e)) { r.plusz[i]++; joHang(); felho('bolt', { mit: 'fejlesztés: ' + ERTEKEK[i], ar: 2 + e, robot: r.nev }); } }
   else if (d.csere) valaszt = { k: d.csere, i: r.resz[d.csere] };
   else if (d.jelol !== undefined) valaszt.i = +d.jelol;
-  else if (d.felszerel) { if (valaszt.i !== r.resz[valaszt.k] && fizet(AR.csere)) { r.resz[valaszt.k] = valaszt.i; valaszt = null; joHang(); } }
+  else if (d.felszerel) { if (valaszt.i !== r.resz[valaszt.k] && fizet(AR.csere)) { r.resz[valaszt.k] = valaszt.i; felho('bolt', { mit: 'alkatrész: ' + (valaszt.i < 0 ? 'nincs' : ADAT[valaszt.k][valaszt.i].nev), ar: AR.csere, robot: r.nev }); valaszt = null; joHang(); } }
   else if (d.megse) valaszt = null;
   else if (d.fest) { if (fizet(AR.festes)) { r.szin = r.szin.map(() => egesz(SZINEK.length)); if (r.szin[1] === r.szin[0]) r.szin[1] = (r.szin[1] + 3) % SZINEK.length; } }
   else if (d.nev) { const n = prompt('Mi legyen a robot neve?', r.nev); if (n && n.trim()) r.nev = n.trim().slice(0, 18).replace(/[<>&]/g, ''); }
@@ -624,15 +699,17 @@ function tanulasNyit() {
 document.getElementById('targyak').onclick = async ev => {
   const targy = ev.target.dataset.targy; if (!targy) return;
   const kor = document.getElementById('kor'); document.getElementById('targyak').style.display = 'none'; kor.style.display = '';
-  let jo = 0, sorozat = 0, szerzett = 0; const eredm = [];
+  let jo = 0, sorozat = 0, szerzett = 0; const eredm = [], kerdesek = [];
   for (let i = 1; i <= 10; i++) {
     const pottyok = Array.from({ length: 10 }, (_, k) => `<i class="${k < eredm.length ? (eredm[k] ? 'j' : 'r') : k === eredm.length ? 'm' : ''}"></i>`).join('');
-    const siker = await kerdez(kor, ujFeladat(targy), `<span class="pottyok">${pottyok}</span><span>Ebben a körben: <span class="taller">${szerzett}</span></span>`);
-    eredm.push(siker);
+    const fel = ujFeladat(targy);
+    const siker = await kerdez(kor, fel, `<span class="pottyok">${pottyok}</span><span>Ebben a körben: <span class="taller">${szerzett}</span></span>`);
+    eredm.push(siker); kerdesek.push({ tema: fel.kis || targy, jo: siker });
     if (siker) { jo++; sorozat++; const t = sorozat >= 3 ? 3 : 2; szerzett += t; all.taller += t; } else sorozat = 0;
     ment();
   }
   if (jo === 10) { all.taller += 5; szerzett += 5; ment(); }
+  felho('feladatkor', { targy, jo, osszes: 10, szerzett, kerdesek });
   kor.innerHTML = `<div class="feladat"><div class="q">${jo === 10 ? 'Hibátlan kör!' : jo >= 7 ? 'Szép munka!' : 'Gyakoroljunk még!'}<small style="margin-top:10px">${jo} jó válasz a 10-ből${jo === 10 ? ', ezért 5 tallér jutalom is jár' : ''}.</small></div>
     <p style="font-size:26px">Szereztél: <span class="taller">${szerzett}</span></p><div class="gombsor" style="justify-content:center"><button class="fo" id="megegy">Még egy kör</button><button id="amuhelybe">Irány a műhely</button></div></div>`;
   document.getElementById('megegy').onclick = tanulasNyit; document.getElementById('amuhelybe').onclick = () => oldal('muhely');
@@ -666,17 +743,18 @@ function versenyNyit() {
 document.getElementById('vindit').onclick = async () => {
   const kor = document.getElementById('vkor'); document.getElementById('vstart').style.display = 'none'; kor.style.display = '';
   const sorrend = [[0, 3], [1, 4], [2, 3]].flatMap(([sz, db]) => kever(ZRINYI[sz]).slice(0, db).map(g => [sz, g]));
-  let pont = 0, szerzett = 0; const eredm = [];
+  let pont = 0, szerzett = 0; const eredm = [], vfel = [];
   for (const [i, [sz, gen]] of sorrend.entries()) {
     const pottyok = sorrend.map((_, k) => `<i class="${k < eredm.length ? ['r', 'f', 'j'][eredm[k]] : k === eredm.length ? 'm' : ''}"></i>`).join('');
     const f = ujVersenyFeladat(sz, gen); f.kis += ` · ${ZTALLER[sz]} tallér`;
     const e = await versenyKerdez(kor, f, `<span class="pottyok">${pottyok}</span><span>${i + 1}. feladat · Pontjaid: <b>${pont}</b> · Tallér: <b>${szerzett}</b></span>`);
-    eredm.push(e);
+    eredm.push(e); vfel.push({ tema: ZNEV[sz][ZRINYI[sz].indexOf(gen)], szint: sz, eredmeny: e });
     const t = e === 2 ? ZTALLER[sz] : e === 1 ? ZMASODIK : 0;   // pont csak elsőre jó válaszért jár, mint a versenyen
     if (e === 2) pont += ZPONT[sz];
     if (t) { szerzett += t; all.taller += t; ment(); }
   }
   const rekord = pont > (all.versenyRekord || 0); if (rekord) { all.versenyRekord = pont; ment(); }
+  felho('verseny', { pont, szerzett, feladatok: vfel });
   const erem = pont >= 34 ? 'Aranyérem!' : pont >= 24 ? 'Ezüstérem!' : pont >= 14 ? 'Bronzérem!' : 'Gyakoroljunk még!';
   kor.innerHTML = `<div class="feladat"><div class="q">${erem}<small style="margin-top:10px">${pont} pont a 40-ből, ${eredm.filter(x => x === 2).length} elsőre jó válasz a 10-ből${eredm.some(x => x === 1) ? `, segítséggel még ${eredm.filter(x => x === 1).length}` : ''}.${rekord ? ' Ez új egyéni csúcs!' : ''}</small></div>
     <p style="font-size:26px">Szereztél: <span class="taller">${szerzett}</span></p><div class="gombsor" style="justify-content:center"><button class="fo" id="vujra">Új verseny</button><button id="vmuhely">Irány a műhely</button></div></div>`;
@@ -763,7 +841,7 @@ document.getElementById('harcindit').onclick = async () => {
   const sorok = [], ir = t => { sorok.unshift(t); naplo.innerHTML = sorok.slice(0, 2).map((x, i) => i ? `<span class="regi"> · ${x}</span>` : x).join(''); };
   const kiir = szo => { csatt.textContent = szo; csatt.classList.remove('latszik'); void csatt.offsetWidth; csatt.classList.add('latszik'); };
   const frissit = f => { f.el.querySelector('.elet i').style.width = f.hp / f.max * 100 + '%'; f.el.querySelector('.elet span').textContent = f.hp; f.el.querySelector('.elet i').style.background = f.hp < f.max * .3 ? 'var(--piros)' : ''; };
-  let ki = felek[0].e[1] === felek[1].e[1] ? egesz(2) : (felek[0].e[1] > felek[1].e[1] ? 0 : 1), kor = 0, tallerHarc = 0;
+  let ki = felek[0].e[1] === felek[1].e[1] ? egesz(2) : (felek[0].e[1] > felek[1].e[1] ? 0 : 1), kor = 0, tallerHarc = 0; const harcKerdesek = [];
   ir(`${felek[ki].r.nev} a gyorsabb, ő kezd!`); await var_(1300);
   while (felek[0].hp > 0 && felek[1].hp > 0) {
     const t = felek[ki], v = felek[1 - ki]; kor++;
@@ -771,9 +849,10 @@ document.getElementById('harcindit').onclick = async () => {
     let szorzo = 1, a;
     if (t.ember) {
       a = await akcioValaszt(kerdes, t);
-      const jo = await kerdez(kerdes, ujFeladat('vegyes'), `<span>${a.nev}: ${t.r.nev} pilótája válaszol</span><span>${kor}. kör</span>`);
+      const hkf = ujFeladat('vegyes'), jo = await kerdez(kerdes, hkf, `<span>${a.nev}: ${t.r.nev} pilótája válaszol</span><span>${kor}. kör</span>`);
       kerdes.innerHTML = ''; szorzo = jo ? 1.5 : 0.5;
       if (jo && !ket) { all.taller++; tallerHarc++; ment(); }
+      harcKerdesek.push({ tema: hkf.kis, jo, akcio: a.tip });
     } else { a = gepValaszt(t, v); ir(`${t.r.nev} választása: ${a.nev.toLowerCase()}`); await var_(900); }
     const ta = t.el.querySelector('.alak'), va = v.el.querySelector('.alak');
     if (a.tip === 'javit') {
@@ -816,6 +895,7 @@ document.getElementById('harcindit').onclick = async () => {
   for (let i = 0; i < 46; i++) { const k = document.createElement('i'); k.className = 'konfetti'; k.style.left = Math.random() * 100 + '%'; k.style.background = SZINEK[i % SZINEK.length];
     k.style.animationDuration = 1.6 + Math.random() * 1.8 + 's'; k.style.animationDelay = Math.random() * .8 + 's'; arena.appendChild(k); setTimeout(() => k.remove(), 4500); }
   naplo.innerHTML = `Győzött: <b>${gy.r.nev}</b>, ${kor} kör után!`;
+  felho('harc', { robot: A.nev, ellenfel: B.nev, barati: ket, gyozott: gy === felek[0], gyoztes: gy.r.nev, korok: kor, jutalom: jutalom + tallerHarc, kerdesek: harcKerdesek });
   kerdes.innerHTML = `<div class="feladat"><div class="q" style="margin:4px 0 6px">${ket ? gy.r.nev + ' nyerte a barátságos meccset!' : gy === felek[0] ? 'Győztél!' : 'Most a gyári robot volt erősebb.'}
     <small style="margin-top:8px">${ket ? 'Barátságos meccsért nem jár tallér.' : `Jutalom: ${jutalom} tallér, a jó válaszokért további ${tallerHarc}.`}</small></div>
     <div class="gombsor" style="justify-content:center"><button class="fo" id="ujharc">Új harc</button><button id="fejleszt">Fejlesztem a robotomat</button></div></div>`;
@@ -823,23 +903,144 @@ document.getElementById('harcindit').onclick = async () => {
   document.getElementById('ujharc').onclick = () => oldal('arena'); document.getElementById('fejleszt').onclick = () => oldal('muhely');
 };
 
-ment(); oldal('garazs');
-// ellenőrző mód: ?teszt=garazs | muhely | valaszto (&hely=szem) | verseny (&n=feladatszám, &rossz=1: rossz választ ad, hogy látszódjon a segítség) | tanulas | felallas | arena | vege (a „vege” magától végigjátssza a harcot)
-const teszt = new URLSearchParams(location.search).get('teszt');
+if (teszt) { profilok = [{ id: 'teszt', nev: 'Teszt' }]; betolt(profilok[0]); }
+else { const p = profilok.find(x => x.id === localStorage.getItem(AKTIV_KULCS)); if (p) betolt(p); else profilNyit(); }
+// ===================== ADMIN =====================
+// Rejtett: a címre öt gyors koppintás. A belépés egy Firebase-fiókkal történik; az adatokat csak ez a fiók olvashatja.
+let koppDb = 0, koppIdo = 0;
+document.querySelector('h1').onclick = () => { const most = Date.now(); koppDb = most - koppIdo < 700 ? koppDb + 1 : 1; koppIdo = most; if (koppDb >= 5) { koppDb = 0; adminNyit(); } };
+const admEl = () => document.getElementById('admintartalom');
+const idoStr = mp => mp >= 3600 ? `${Math.floor(mp / 3600)} ó ${Math.round(mp % 3600 / 60)} p` : `${Math.round(mp / 60)} p`;
+const datumStr = t => t ? new Date(t).toLocaleString('hu-HU', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '–';
+const szazalek = (j, o) => o ? Math.round(j / o * 100) : 0;
+const bezarGomb = '<button class="kis" data-adm="bezar">Bezárás</button>';
+async function adminNyit() {
+  document.getElementById('admin').classList.add('lathato');
+  if (!window.FIREBASE_CONFIG) { admEl().innerHTML = `<h2>Admin</h2><p>A felhőmentés még nincs beállítva (FIREBASE_CONFIG). Amíg nincs, minden adat csak ezen az eszközön van.</p><div>${bezarGomb}</div>`; return; }
+  if (!window.adminAllapot || !window.adminAllapot()) {
+    admEl().innerHTML = `<h2>Admin belépés</h2><div class="gombsor"><input id="admjelszo" type="password" placeholder="Jelszó" style="font-size:20px;padding:8px 12px;border:2.5px solid var(--tinta);border-radius:12px">
+      <button class="fo" data-adm="belep">Belépés</button>${bezarGomb}</div><p class="sug" id="admhiba"></p>`;
+    document.getElementById('admjelszo').focus(); document.getElementById('admjelszo').onkeydown = e => { if (e.key === 'Enter') admEl().querySelector('[data-adm=belep]').click(); };
+    return;
+  }
+  admEl().innerHTML = '<h2>Admin</h2><p>Betöltés…</p>';
+  try { adminLista(await window.adminJatekosok()); } catch (e) { admEl().innerHTML = `<h2>Admin</h2><p>Hiba: ${e.message}</p><div>${bezarGomb}</div>`; }
+}
+let admJatekosok = [];
+function adminLista(lista) {
+  admJatekosok = lista.sort((a, b) => (b.utolsoAktiv || 0) - (a.utolsoAktiv || 0));
+  const sorok = admJatekosok.map((j, i) => `<tr class="kat" data-jatekos="${i}"><td><b>${j.nev}</b></td><td>${j.eszkoz || ''}</td><td>${datumStr(j.utolsoAktiv)}</td><td>${idoStr(j.jatekIdoMp || 0)}</td>
+    <td>${j.taller}</td><td>${(j.robotok || []).length}</td><td>${j.jo + j.rossz ? `${szazalek(j.jo, j.jo + j.rossz)}% (${j.jo + j.rossz})` : '–'}</td><td>${j.versenyRekord || '–'}</td></tr>`).join('');
+  admEl().innerHTML = `<div class="gombsor"><h2 style="flex:1">Játékosok (${admJatekosok.length})</h2><button class="kis" data-adm="frissit">Frissítés</button><button class="kis" data-adm="kilep">Kilépés</button>${bezarGomb}</div>
+    <div class="tablazat"><table><tr><th>Név</th><th>Eszköz</th><th>Utoljára</th><th>Játékidő</th><th>Tallér</th><th>Robot</th><th>Jó válasz</th><th>Verseny-csúcs</th></tr>${sorok || '<tr><td colspan="8">Még senki nem játszott.</td></tr>'}</table></div>`;
+}
+async function adminReszlet(j) {
+  admEl().innerHTML = `<h2>${j.nev}</h2><p>Betöltés…</p>`;
+  const esem = await window.adminEsemenyek(j.id);
+  const temak = {};   // téma → [jó, összes]
+  const hozza = (t, jo) => { const x = temak[t] = temak[t] || [0, 0]; x[0] += jo ? 1 : 0; x[1]++; };
+  esem.forEach(e => { const a = e.adat || {};
+    if (e.tip === 'feladatkor' || e.tip === 'harc') (a.kerdesek || []).forEach(k => hozza(k.tema, k.jo));
+    if (e.tip === 'verseny') (a.feladatok || []).forEach(k => hozza('Verseny: ' + k.tema, k.eredmeny === 2)); });
+  const temaSorok = Object.entries(temak).sort((a, b) => a[1][0] / a[1][1] - b[1][0] / b[1][1]).map(([t, [jo, o]]) => { const sz = szazalek(jo, o);
+    return `<tr><td>${t}</td><td><span class="admsav" style="width:${sz}px;background:${sz < 50 ? 'var(--piros)' : sz < 80 ? 'var(--arany)' : 'var(--zold)'}"></span> ${sz}%</td><td>${jo} / ${o}</td></tr>`; }).join('');
+  const napok = Array.from({ length: 14 }, (_, i) => { const d = new Date(Date.now() - (13 - i) * 864e5).toISOString().slice(0, 10); return [d, (j.napok || {})[d] || 0]; });
+  const maxNap = Math.max(600, ...napok.map(n => n[1]));
+  const versenyek = esem.filter(e => e.tip === 'verseny'), harcok = esem.filter(e => e.tip === 'harc'), korok = esem.filter(e => e.tip === 'feladatkor');
+  const gy = harcok.filter(h => h.adat.gyozott && !h.adat.barati).length, gepHarc = harcok.filter(h => !h.adat.barati).length;
+  const robotok = (j.robotok || []).map(r => { const rr = { ...r, plusz: r.plusz || [0, 0, 0, 0], alap: r.alap || [3, 3, 3, 3] };
+    return `<div>${rajz(rr, true)}<b>${r.nev}</b><br>Erő: ${osszEro(rr)} · Győzelem: ${r.gyozelem || 0}</div>`; }).join('');
+  admEl().innerHTML = `<div class="gombsor"><h2 style="flex:1">${j.nev} <small style="font:15px 'Avenir Next',sans-serif;color:#777">${j.eszkoz || ''} · kezdés: ${datumStr(j.letrehozva)} · utoljára: ${datumStr(j.utolsoAktiv)}</small></h2>
+      <button class="kis" data-adm="lista">← Játékosok</button>${bezarGomb}</div>
+    <p>Összes játékidő: <b>${idoStr(j.jatekIdoMp || 0)}</b> · Tallér: <b>${j.taller}</b> · Jó válaszok: <b>${j.jo + j.rossz ? szazalek(j.jo, j.jo + j.rossz) + '%' : '–'}</b> (${j.jo} / ${j.jo + j.rossz}) · Gyári ellenfél ellen: <b>${gy} győzelem ${gepHarc} harcból</b> · Verseny-csúcs: <b>${j.versenyRekord || '–'}</b> pont</p>
+    <h3>Napi játékidő, utolsó 14 nap</h3><div class="napok" style="margin-bottom:16px">${napok.map(([d, mp]) => `<div style="height:${mp / maxNap * 100}%" title="${d}: ${idoStr(mp)}"><span>${d.slice(8)}</span></div>`).join('')}</div>
+    <h3>Témák (a leggyengébb elöl)</h3><div class="tablazat"><table><tr><th>Téma</th><th>Siker</th><th>Jó / összes</th></tr>${temaSorok || '<tr><td colspan="3">Még nincs adat.</td></tr>'}</table></div>
+    <h3>Robotok (${(j.robotok || []).length})</h3><div class="admrobotok">${robotok}</div>
+    <h3>Versenyek (${versenyek.length})</h3><div class="tablazat"><table><tr><th>Mikor</th><th>Pont</th><th>Elsőre jó</th><th>Segítséggel</th><th>Tallér</th></tr>${versenyek.map(v => `<tr><td>${datumStr(v.ido)}</td><td>${v.adat.pont} / 40</td><td>${v.adat.feladatok.filter(f => f.eredmeny === 2).length}</td><td>${v.adat.feladatok.filter(f => f.eredmeny === 1).length}</td><td>${v.adat.szerzett}</td></tr>`).join('') || '<tr><td colspan="5">Még nem versenyzett.</td></tr>'}</table></div>
+    <h3>Feladatkörök (${korok.length})</h3><div class="tablazat"><table><tr><th>Mikor</th><th>Tantárgy</th><th>Jó</th></tr>${korok.map(k => `<tr><td>${datumStr(k.ido)}</td><td>${{ matek: 'Matek', magyar: 'Magyar', vilag: 'Környezet', vegyes: 'Vegyes' }[k.adat.targy] || k.adat.targy}</td><td>${k.adat.jo} / ${k.adat.osszes}</td></tr>`).join('') || '<tr><td colspan="3">Még nincs.</td></tr>'}</table></div>
+    <h3>Harcok (${harcok.length})</h3><div class="tablazat"><table><tr><th>Mikor</th><th>Robot</th><th>Ellenfél</th><th>Eredmény</th><th>Körök</th><th>Jó válasz</th></tr>${harcok.map(h => `<tr><td>${datumStr(h.ido)}</td><td>${h.adat.robot}</td><td>${h.adat.ellenfel}${h.adat.barati ? ' (barátságos)' : ''}</td><td>${h.adat.barati ? 'nyertes: ' + h.adat.gyoztes : h.adat.gyozott ? 'győzött' : 'vesztett'}</td><td>${h.adat.korok}</td><td>${(h.adat.kerdesek || []).filter(k => k.jo).length} / ${(h.adat.kerdesek || []).length}</td></tr>`).join('') || '<tr><td colspan="6">Még nem harcolt.</td></tr>'}</table></div>
+    <h3>Vásárlások</h3><p class="sug">${esem.filter(e => e.tip === 'bolt').slice(0, 40).map(e => `${datumStr(e.ido)}: ${e.adat.mit}${e.adat.robot ? ` (${e.adat.robot})` : ''}, ${e.adat.ar} T`).join('<br>') || 'Még nincs.'}</p>`;
+}
+document.getElementById('admin').onclick = async e => {
+  const g = e.target.closest('[data-adm], tr[data-jatekos]'); if (!g) return;
+  if (g.dataset.jatekos !== undefined) return adminReszlet(admJatekosok[+g.dataset.jatekos]);
+  const m = g.dataset.adm;
+  if (m === 'bezar') document.getElementById('admin').classList.remove('lathato');
+  if (m === 'belep') { try { await window.adminBelep(document.getElementById('admjelszo').value); adminNyit(); } catch (err) { document.getElementById('admhiba').textContent = 'Nem sikerült belépni: ' + (err.code || err.message); } }
+  if (m === 'kilep') { await window.adminKilep(); document.getElementById('admin').classList.remove('lathato'); }
+  if (m === 'frissit' || m === 'lista') adminNyit();
+};
+
+// ellenőrző mód: ?teszt=garazs | muhely | valaszto (&hely=szem) | verseny (&n=feladatszám, &rossz=1: rossz választ ad, hogy látszódjon a segítség) | tanulas | felallas | arena | admin (&reszlet=1) | vege (a „vege” magától végigjátssza a harcot)
 if (teszt) {
   all.taller = Math.max(all.taller, 60); while (all.robotok.length < 7) all.robotok.push(ujRobot(4242 + all.robotok.length * 7919)); ment();
-  oldal({ vege: 'arena', felallas: 'arena', akcio: 'arena', valaszto: 'muhely' }[teszt] || teszt);
+  oldal({ vege: 'arena', felallas: 'arena', akcio: 'arena', valaszto: 'muhely', admin: 'garazs' }[teszt] || teszt);
   if (teszt === 'valaszto') { document.querySelector(`[data-csere=${new URLSearchParams(location.search).get('hely') || 'szem'}]`).click(); document.querySelectorAll('[data-jelol]')[1].click(); }
   if (teszt === 'verseny') { document.getElementById('vindit').click();
     if (new URLSearchParams(location.search).get('rossz')) setTimeout(() => { const k = document.getElementById('vkor'); [...k.querySelectorAll('.valaszok button')].find(b => b.dataset.v !== k._f.jo).click(); }, 500);
     const n = +(new URLSearchParams(location.search).get('n') || 1);
     for (let k = 1; k < n; k++) setTimeout(() => { const g = document.querySelector('#vkor .valaszok button:not(:disabled)'); g && g.click(); setTimeout(() => { const t = document.querySelector('#vkor .valaszok button:not(:disabled)'); t && t.click(); setTimeout(() => { const u = document.querySelector('#vkor .uzenet button'); u && u.click(); }, 100); }, 300); }, k * 1200); }
   if (teszt === 'tanulas') document.querySelector('[data-targy=magyar]').click();
+  if (teszt === 'admin') setTimeout(() => {   // admin nézet kitalált adatokkal, felhő nélkül
+    window.FIREBASE_CONFIG = {}; window.adminAllapot = () => true; const most = Date.now();
+    all.jatekIdoMp = 5400; all.napok = {}; for (let i = 0; i < 14; i += 2) all.napok[new Date(most - i * 864e5).toISOString().slice(0, 10)] = 300 + i * 200;
+    window.adminJatekosok = async () => [{ id: 'teszt', ...window.felhoAllapot(), utolsoAktiv: most }, { id: 'b', ...window.felhoAllapot(), nev: 'Bori', eszkoz: 'telefon', utolsoAktiv: most - 864e5 }];
+    window.adminEsemenyek = async () => [
+      { tip: 'verseny', ido: most - 3e6, adat: { pont: 27, szerzett: 40, feladatok: [{ tema: 'púpok', eredmeny: 2 }, { tema: 'időpont', eredmeny: 0 }, { tema: 'hézagok (kerítés)', eredmeny: 1 }] } },
+      { tip: 'feladatkor', ido: most - 5e6, adat: { targy: 'matek', jo: 7, osszes: 10, kerdesek: [{ tema: 'Kivonás tízesátlépéssel', jo: false }, { tema: 'Kivonás tízesátlépéssel', jo: true }, { tema: 'Számszomszédok', jo: true }] } },
+      { tip: 'harc', ido: most - 6e6, adat: { robot: 'Turbóbot', ellenfel: 'Vasrex', barati: false, gyozott: true, korok: 7, kerdesek: [{ tema: 'Hónapok', jo: true }] } },
+      { tip: 'bolt', ido: most - 7e6, adat: { mit: 'alkatrész: kerék', ar: 3, robot: 'Turbóbot' } }];
+    adminNyit(); if (new URLSearchParams(location.search).get('reszlet')) setTimeout(() => document.querySelector('#admin tr[data-jatekos]').click(), 300);
+  }, 100);
   if (teszt === 'akcio') { aktiv().plusz[1] = MAX; oldal('arena'); }   // a saját robot a gyorsabb, így ő kezd
   if (teszt === 'arena' || teszt === 'vege' || teszt === 'akcio') { document.getElementById('harcindit').click();
     if (teszt === 'vege') setInterval(() => { const g = document.querySelector('#harckerdes .akciok button:not(:disabled), #harckerdes .valaszok button:not(:disabled), #harckerdes .uzenet button'); if (g) g.click(); }, 300); }
   // jelzi, ha valami kilóg a képernyőről
   setTimeout(() => { const m = document.querySelector('main'), d = document.querySelector('.doboz'); document.title = 'TESZT ' + JSON.stringify({ oldal: document.documentElement.scrollHeight - innerHeight, main: m.scrollHeight - m.clientHeight, doboz: d ? d.scrollHeight - d.clientHeight : 0 }); }, 1500);
+}
+</script>
+<script>
+// A Firebase webes konfigurációja (Firebase-konzol › Projektbeállítások › Saját alkalmazások). Ha null, a játék csak helyben ment.
+window.FIREBASE_CONFIG = null;
+window.ADMIN_EMAIL = 'vinterpeter@gmail.com';
+</script>
+<script type="module">
+const cfg = window.FIREBASE_CONFIG;
+if (cfg && !new URLSearchParams(location.search).get('teszt')) {
+  const V = 'https://www.gstatic.com/firebasejs/10.12.5/';
+  const { initializeApp } = await import(V + 'firebase-app.js');
+  const { getAuth, signInAnonymously, onAuthStateChanged, signInWithEmailAndPassword, signOut } = await import(V + 'firebase-auth.js');
+  const { getFirestore, doc, setDoc, addDoc, collection, getDocs, query, orderBy, limit, serverTimestamp, Timestamp } = await import(V + 'firebase-firestore.js');
+  const app = initializeApp(cfg), auth = getAuth(app), db = getFirestore(app);
+  let uid = null, kesz = false, idozito = null, kuldes = false;
+  async function mentesMost() {
+    const p = window.felhoAllapot && window.felhoAllapot(); if (!uid || !p || !p.nev) return;
+    await setDoc(doc(db, 'jatekosok', aktivId()), { ...p, uid, utolsoAktiv: serverTimestamp() }, { merge: true }); kesz = true;
+  }
+  const aktivId = () => localStorage.getItem('robotbajnoksag-aktiv-profil');
+  window.felhoMent = () => { clearTimeout(idozito); idozito = setTimeout(() => mentesMost().catch(e => console.warn('felhő', e)), 4000); };
+  window.felhoKuld = async () => {
+    if (!uid || kuldes) return; kuldes = true;
+    try {
+      if (!kesz) await mentesMost();
+      while (window.felhoSor.length) { const e = window.felhoSor[0];
+        await addDoc(collection(db, 'jatekosok', e.profil, 'esemenyek'), { tip: e.tip, adat: e.adat, ido: Timestamp.fromMillis(e.ido), uid });
+        window.felhoSor.shift(); }
+    } catch (e) { console.warn('felhő', e); } finally { kuldes = false; }
+  };
+  addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') { clearTimeout(idozito); mentesMost().catch(() => {}); } });
+  onAuthStateChanged(auth, u => { if (u) { uid = u.uid; kesz = false; window.felhoKuld(); } });
+  signInAnonymously(auth).catch(e => console.warn('felhő', e));
+  // admin: külön példány, hogy a gyerek névtelen bejelentkezése ne vesszen el
+  const adminApp = initializeApp(cfg, 'admin'), adminAuth = getAuth(adminApp), adminDb = getFirestore(adminApp);
+  let adminUser = null; onAuthStateChanged(adminAuth, u => adminUser = u && !u.isAnonymous ? u : null);
+  await adminAuth.authStateReady();
+  window.adminAllapot = () => adminUser;
+  window.adminBelep = jelszo => signInWithEmailAndPassword(adminAuth, window.ADMIN_EMAIL, jelszo).then(c => adminUser = c.user);
+  window.adminKilep = () => signOut(adminAuth);
+  const ms = t => t && t.toMillis ? t.toMillis() : t;
+  window.adminJatekosok = async () => (await getDocs(collection(adminDb, 'jatekosok'))).docs.map(d => ({ id: d.id, ...d.data(), utolsoAktiv: ms(d.data().utolsoAktiv) }));
+  window.adminEsemenyek = async id => (await getDocs(query(collection(adminDb, 'jatekosok', id, 'esemenyek'), orderBy('ido', 'desc'), limit(500)))).docs.map(d => ({ ...d.data(), ido: ms(d.data().ido) }));
 }
 </script>
 </body>
